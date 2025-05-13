@@ -1,6 +1,5 @@
 package mate.academy.springboot.web.service.impl;
 
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import mate.academy.springboot.web.dto.BookDto;
 import mate.academy.springboot.web.dto.CreateBookRequestDto;
@@ -9,6 +8,10 @@ import mate.academy.springboot.web.mapper.BookMapper;
 import mate.academy.springboot.web.model.Book;
 import mate.academy.springboot.web.repository.BookRepository;
 import mate.academy.springboot.web.service.BookService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -18,12 +21,11 @@ public class BookServiceImpl implements BookService {
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
 
-    @Override
-    public List<BookDto> findAll() {
-        return bookRepository.findAll()
-                .stream()
-                .map(bookMapper::toDto)
-                .toList();
+    public Page<BookDto> findAll(int page, int size, String[] sort) {
+        Sort.Direction direction = Sort.Direction.fromString(sort[1]);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sort[0]));
+        return bookRepository.findAll(pageable)
+                .map(bookMapper::toDto);
     }
 
     @Override
