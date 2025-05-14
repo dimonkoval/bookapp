@@ -3,9 +3,10 @@ package mate.academy.springboot.web.service;
 import mate.academy.springboot.web.dto.BookDto;
 import mate.academy.springboot.web.dto.CreateBookRequestDto;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface BookService {
-    Page<BookDto> findAll(int page, int size, String[] sort);
+    Page<BookDto> findAll(Pageable pageable);
 
     BookDto findById(Long id);
 
