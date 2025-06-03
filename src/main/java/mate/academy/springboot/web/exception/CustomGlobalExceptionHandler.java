@@ -80,17 +80,6 @@ public class CustomGlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(RegistrationException.class)
-    public ResponseEntity<ErrorResponse> handleRegistration(RegistrationException ex) {
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Registration failed",
-                List.of(ex.getMessage())
-        );
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-    }
-
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
