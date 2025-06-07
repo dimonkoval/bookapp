@@ -21,7 +21,8 @@ public class UserServiceImpl implements UserService {
     public UserResponseDto register(UserRegistrationRequestDto request)
             throws RegistrationException {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RegistrationException("Email already in use");
+            throw new RegistrationException("User with email "
+                    + request.getEmail() + " already exist.");
         }
 
         User user = userMapper.toEntity(request);
@@ -29,4 +30,3 @@ public class UserServiceImpl implements UserService {
         return userMapper.toDto(saved);
     }
 }
-

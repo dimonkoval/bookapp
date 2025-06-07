@@ -7,4 +7,3 @@ import mate.academy.springboot.web.exception.RegistrationException;
 public interface UserService {
     UserResponseDto register(UserRegistrationRequestDto request) throws RegistrationException;
 }
-
