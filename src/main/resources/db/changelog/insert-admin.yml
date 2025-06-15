@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: insert-admin-with-role
+      author: developer
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: email
+                  value: admin@test.com
+              - column:
+                  name: password
+                  value: $2a$10$YVKS75elXQOfvVn9XbxjJOeTVaYXaRaDa9VHIvRflSqX4CPIM4agK
+              - column:
+                  name: first_name
+                  value: Admin
+              - column:
+                  name: last_name
+                  value: Admin
+              - column:
+                  name: shipping_address
+                  value: Washington
+
+        - sql: >
+            INSERT INTO users_roles (user_id, role_id)
+            SELECT id, 2 FROM users WHERE email = 'admin@test.com';
+
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: email
+                  value: test@test.com
+              - column:
+                  name: password
+                  value: $2a$10$YVKS75elXQOfvVn9XbxjJOeTVaYXaRaDa9VHIvRflSqX4CPIM4agK
+              - column:
+                  name: first_name
+                  value: User
+              - column:
+                  name: last_name
+                  value: User
+              - column:
+                  name: shipping_address
+                  value: New York
+        - sql: >
+            INSERT INTO users_roles (user_id, role_id)
+            SELECT id, 1 FROM users WHERE email = 'test@test.com';

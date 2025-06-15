@@ -1,7 +1,11 @@
 package mate.academy.springboot.web.service.impl;
 
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import mate.academy.springboot.web.dto.BookDto;
+import mate.academy.springboot.web.dto.BookSearchRequestDto;
 import mate.academy.springboot.web.dto.CreateBookRequestDto;
 import mate.academy.springboot.web.exception.EntityNotFoundException;
 import mate.academy.springboot.web.mapper.BookMapper;
@@ -10,6 +14,7 @@ import mate.academy.springboot.web.repository.BookRepository;
 import mate.academy.springboot.web.service.BookService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -53,5 +58,35 @@ public class BookServiceImpl implements BookService {
         } else {
             throw new EntityNotFoundException(String.format(BOOK_NOT_FOUND, id));
         }
+    }
+
+    @Override
+    public Page<BookDto> searchBooks(BookSearchRequestDto request, Pageable pageable) {
+        Map<String, Function<String, Specification<Book>>> fieldSpecMap = Map.of(
+                "title", value -> (root, q, cb) -> cb.like(cb.lower(root.get("title")),
+                        "%" + value.toLowerCase() + "%"),
+                "author", value -> (root, q, cb) -> cb.like(cb.lower(root.get("author")),
+                        "%" + value.toLowerCase() + "%"),
+                "isbn", value -> (root, q, cb) -> cb.like(cb.lower(root.get("isbn")),
+                        "%" + value.toLowerCase() + "%"),
+                "description", value -> (root, q, cb) -> cb.like(cb.lower(root.get("description")),
+                        "%" + value.toLowerCase() + "%")
+        );
+
+        Specification<Book> spec = Specification.where(null);
+
+        for (Field field : BookSearchRequestDto.class.getDeclaredFields()) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(request);
+                if (value != null && fieldSpecMap.containsKey(field.getName())) {
+                    spec = spec.and(fieldSpecMap.get(field.getName()).apply(value.toString()));
+                }
+
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException("Failed to read search field: " + field.getName(), e);
+            }
+        }
+        return bookRepository.findAll(spec, pageable).map(bookMapper::toDto);
     }
 }
