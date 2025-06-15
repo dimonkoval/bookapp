@@ -22,7 +22,7 @@ public class AuthenticationController {
 
     private final UserService userService;
 
-    @PostMapping("/registration")
+    @PostMapping("/register")
     @BadRequestApiResponse
     @OkApiResponse
     @InternalServerErrorApiResponse
