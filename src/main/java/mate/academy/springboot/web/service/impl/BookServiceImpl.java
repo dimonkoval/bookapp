@@ -1,8 +1,14 @@
 package mate.academy.springboot.web.service.impl;
 
-import java.lang.reflect.Field;
-import java.util.Map;
-import java.util.function.Function;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import mate.academy.springboot.web.dto.BookDto;
 import mate.academy.springboot.web.dto.BookSearchRequestDto;
@@ -13,8 +19,8 @@ import mate.academy.springboot.web.model.Book;
 import mate.academy.springboot.web.repository.BookRepository;
 import mate.academy.springboot.web.service.BookService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -23,6 +29,8 @@ public class BookServiceImpl implements BookService {
     private static final String BOOK_NOT_FOUND = "Book with id %d not found";
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     public Page<BookDto> findAll(Pageable pageable) {
@@ -60,33 +68,57 @@ public class BookServiceImpl implements BookService {
         }
     }
 
-    @Override
     public Page<BookDto> searchBooks(BookSearchRequestDto request, Pageable pageable) {
-        Map<String, Function<String, Specification<Book>>> fieldSpecMap = Map.of(
-                "title", value -> (root, q, cb) -> cb.like(cb.lower(root.get("title")),
-                        "%" + value.toLowerCase() + "%"),
-                "author", value -> (root, q, cb) -> cb.like(cb.lower(root.get("author")),
-                        "%" + value.toLowerCase() + "%"),
-                "isbn", value -> (root, q, cb) -> cb.like(cb.lower(root.get("isbn")),
-                        "%" + value.toLowerCase() + "%"),
-                "description", value -> (root, q, cb) -> cb.like(cb.lower(root.get("description")),
-                        "%" + value.toLowerCase() + "%")
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+
+        // ---------- MAIN QUERY ----------
+        CriteriaQuery<Book> cq = cb.createQuery(Book.class);
+        Root<Book> root = cq.from(Book.class);
+        Predicate[] predicates = buildPredicates(cb, root, request);
+        cq.where(predicates);
+
+        TypedQuery<Book> query = entityManager.createQuery(cq);
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+        List<Book> books = query.getResultList();
+
+        // ---------- COUNT QUERY ----------
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<Book> countRoot = countQuery.from(Book.class);
+        countQuery.select(cb.count(countRoot));
+        countQuery.where(buildPredicates(cb, countRoot, request));
+
+        long total = entityManager.createQuery(countQuery).getSingleResult();
+
+        return new PageImpl<>(
+                books.stream().map(bookMapper::toDto).toList(),
+                pageable,
+                total
         );
+    }
 
-        Specification<Book> spec = Specification.where(null);
+    private Predicate[] buildPredicates(CriteriaBuilder cb,
+                                        Root<Book> root,
+                                        BookSearchRequestDto request) {
+        List<Predicate> predicates = new ArrayList<>();
 
-        for (Field field : BookSearchRequestDto.class.getDeclaredFields()) {
-            field.setAccessible(true);
-            try {
-                Object value = field.get(request);
-                if (value != null && fieldSpecMap.containsKey(field.getName())) {
-                    spec = spec.and(fieldSpecMap.get(field.getName()).apply(value.toString()));
-                }
-
-            } catch (IllegalAccessException e) {
-                throw new RuntimeException("Failed to read search field: " + field.getName(), e);
-            }
+        if (request.getTitle() != null) {
+            predicates.add(cb.like(cb.lower(root.get("title")),
+                    "%" + request.getTitle().toLowerCase() + "%"));
         }
-        return bookRepository.findAll(spec, pageable).map(bookMapper::toDto);
+        if (request.getAuthor() != null) {
+            predicates.add(cb.like(cb.lower(root.get("author")),
+                    "%" + request.getAuthor().toLowerCase() + "%"));
+        }
+        if (request.getIsbn() != null) {
+            predicates.add(cb.like(cb.lower(root.get("isbn")),
+                    "%" + request.getIsbn().toLowerCase() + "%"));
+        }
+        if (request.getDescription() != null) {
+            predicates.add(cb.like(cb.lower(root.get("description")),
+                    "%" + request.getDescription().toLowerCase() + "%"));
+        }
+
+        return predicates.toArray(Predicate[]::new);
     }
 }
