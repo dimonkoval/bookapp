@@ -27,6 +27,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class BookServiceImpl implements BookService {
     private static final String BOOK_NOT_FOUND = "Book with id %d not found";
+    private static final String FIELD_TITLE = "title";
+    private static final String FIELD_AUTHOR = "author";
+    private static final String FIELD_ISBN = "isbn";
+    private static final String FIELD_DESCRIPTION = "description";
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
     @PersistenceContext
@@ -69,26 +73,8 @@ public class BookServiceImpl implements BookService {
     }
 
     public Page<BookDto> searchBooks(BookSearchRequestDto request, Pageable pageable) {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-
-        // ---------- MAIN QUERY ----------
-        CriteriaQuery<Book> cq = cb.createQuery(Book.class);
-        Root<Book> root = cq.from(Book.class);
-        Predicate[] predicates = buildPredicates(cb, root, request);
-        cq.where(predicates);
-
-        TypedQuery<Book> query = entityManager.createQuery(cq);
-        query.setFirstResult((int) pageable.getOffset());
-        query.setMaxResults(pageable.getPageSize());
-        List<Book> books = query.getResultList();
-
-        // ---------- COUNT QUERY ----------
-        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
-        Root<Book> countRoot = countQuery.from(Book.class);
-        countQuery.select(cb.count(countRoot));
-        countQuery.where(buildPredicates(cb, countRoot, request));
-
-        long total = entityManager.createQuery(countQuery).getSingleResult();
+        List<Book> books = getBooks(request, pageable);
+        long total = countBooks(request);
 
         return new PageImpl<>(
                 books.stream().map(bookMapper::toDto).toList(),
@@ -97,25 +83,50 @@ public class BookServiceImpl implements BookService {
         );
     }
 
+    private List<Book> getBooks(BookSearchRequestDto request, Pageable pageable) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Book> cq = cb.createQuery(Book.class);
+        Root<Book> root = cq.from(Book.class);
+
+        Predicate[] predicates = buildPredicates(cb, root, request);
+        cq.where(predicates);
+
+        TypedQuery<Book> query = entityManager.createQuery(cq);
+        query.setFirstResult((int) pageable.getOffset());
+        query.setMaxResults(pageable.getPageSize());
+        return query.getResultList();
+    }
+
+    private long countBooks(BookSearchRequestDto request) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Book> root = cq.from(Book.class);
+
+        Predicate[] predicates = buildPredicates(cb, root, request);
+        cq.select(cb.count(root)).where(predicates);
+
+        return entityManager.createQuery(cq).getSingleResult();
+    }
+
     private Predicate[] buildPredicates(CriteriaBuilder cb,
                                         Root<Book> root,
                                         BookSearchRequestDto request) {
         List<Predicate> predicates = new ArrayList<>();
 
         if (request.getTitle() != null) {
-            predicates.add(cb.like(cb.lower(root.get("title")),
+            predicates.add(cb.like(cb.lower(root.get(FIELD_TITLE)),
                     "%" + request.getTitle().toLowerCase() + "%"));
         }
         if (request.getAuthor() != null) {
-            predicates.add(cb.like(cb.lower(root.get("author")),
+            predicates.add(cb.like(cb.lower(root.get(FIELD_AUTHOR)),
                     "%" + request.getAuthor().toLowerCase() + "%"));
         }
         if (request.getIsbn() != null) {
-            predicates.add(cb.like(cb.lower(root.get("isbn")),
+            predicates.add(cb.like(cb.lower(root.get(FIELD_ISBN)),
                     "%" + request.getIsbn().toLowerCase() + "%"));
         }
         if (request.getDescription() != null) {
-            predicates.add(cb.like(cb.lower(root.get("description")),
+            predicates.add(cb.like(cb.lower(root.get(FIELD_DESCRIPTION)),
                     "%" + request.getDescription().toLowerCase() + "%"));
         }
 

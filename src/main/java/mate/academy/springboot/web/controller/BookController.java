@@ -15,7 +15,6 @@ import mate.academy.springboot.web.swagger.annotations.OkApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -60,7 +59,6 @@ public class BookController {
             description = "Add a new book to the collection")
     @CreatedApiResponse
     @BadRequestApiResponse
-    @PreAuthorize("hasRole('ADMIN')")
     public BookDto createBook(@RequestBody @Valid CreateBookRequestDto requestDto) {
         return bookService.create(requestDto);
     }
@@ -71,7 +69,6 @@ public class BookController {
     @OkApiResponse
     @BadRequestApiResponse
     @NotFoundApiResponse
-    @PreAuthorize("hasRole('ADMIN')")
     public BookDto updateBook(@PathVariable Long id,
                               @RequestBody @Valid CreateBookRequestDto requestDto) {
         return bookService.updateBook(id, requestDto);
@@ -83,7 +80,6 @@ public class BookController {
     @NoContentApiResponse
     @NotFoundApiResponse
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('ADMIN')")
     public void deleteBook(@PathVariable Long id) {
         bookService.deleteBook(id);
     }
