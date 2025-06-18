@@ -12,4 +12,16 @@ public interface UserMapper {
     User toEntity(UserRegistrationRequestDto dto);
 
     UserResponseDto toDto(User user);
+
+    default org.springframework.security.core.userdetails.User convertToUserDetails(User user) {
+        return new org.springframework.security.core.userdetails.User(
+                user.getEmail(),
+                user.getPassword(),
+                user.isEnabled(),
+                user.isAccountNonExpired(),
+                user.isCredentialsNonExpired(),
+                user.isAccountNonLocked(),
+                user.getAuthorities()
+        );
+    }
 }

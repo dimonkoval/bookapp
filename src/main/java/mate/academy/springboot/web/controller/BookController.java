@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import mate.academy.springboot.web.dto.BookDto;
+import mate.academy.springboot.web.dto.BookSearchRequestDto;
 import mate.academy.springboot.web.dto.CreateBookRequestDto;
 import mate.academy.springboot.web.service.BookService;
 import mate.academy.springboot.web.swagger.annotations.BadRequestApiResponse;
@@ -35,6 +36,13 @@ public class BookController {
     @OkApiResponse
     public Page<BookDto> getAll(Pageable pageable) {
         return bookService.findAll(pageable);
+    }
+
+    @GetMapping("/search")
+    @Operation(summary = "Retrieve the book catalog based on search params")
+    @OkApiResponse
+    public Page<BookDto> searchBooks(BookSearchRequestDto request, Pageable pageable) {
+        return bookService.searchBooks(request, pageable);
     }
 
     @GetMapping("/{id}")
